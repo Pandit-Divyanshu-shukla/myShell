@@ -2,74 +2,128 @@
 #include <stdlib.h>
 #include <unistd.h>
 #include <sys/wait.h>
+#include <fcntl.h>
 #include <string.h>
 
-
-int main(){
+int main() {
     char input[100];
-    while(1){
-        printf("panditzzz>>");
-        // fgets(buffer, size, stream);
-        fgets(input,sizeof(input),stdin);
-        // strcspn(buffer,char to find)  -> returns index of char founds in buffer
+
+    // Infinite loop → shell keeps running
+    while (1) {
+        // Print prompt
+        printf("panditzzz>> ");
+
+        // Take input from user
+        fgets(input, sizeof(input), stdin);
+
+        // Remove newline character
         input[strcspn(input, "\n")] = 0;
 
-        // argument list
+        // Array to store arguments (argv)
         char *args[10];
-        //Updated Parser
-        int i=0;
+        int i = 0;
 
-        char *token = strtok(input," \t");
+        // Tokenize input using space and tab
+        char *token = strtok(input, " \t");
 
-        while(token!=NULL && i<9){
+        while (token != NULL && i < 9) {
             args[i++] = token;
-            token = strtok(NULL," \t"); 
+            token = strtok(NULL, " \t");
         }
 
+        // NULL terminate args (VERY IMPORTANT for execvp)
         args[i] = NULL;
 
-        // args[i] = strtok(input," ");
+        // If empty input → skip
+        if (args[0] == NULL) continue;
 
-        // //extracting token (Old Parser)
-        // while(args[i] != NULL){
-        //     i++;
-        //     args[i] = strtok(NULL," ");
-        // }
-
-        if(args[0] == NULL) continue;
-
-        // CD
-        if(strcmp(args[0],"cd")==0){
-            if(args[1]==NULL){
-                chdir("origin");
-            }else{
-                if (chdir(args[1]) != 0){ // return 0 when changed directory
-                    perror("No Folder with Name is Present");
-                }  
+        // ================= BUILT-IN: cd =================
+        if (strcmp(args[0], "cd") == 0) {
+            if (args[1] == NULL) {
+                // Go to HOME directory
+                chdir(getenv("HOME"));  
+            } else {
+                // Change directory
+                if (chdir(args[1]) != 0) {
+                    perror("cd failed");
+                }
             }
-            continue;
-            // Means the command below fork and execvp can be skipped
+            continue; // skip fork
         }
 
-        //Exit
-        if(strcmp(args[0],"exit")==0){
-            printf("Exiting the P-Shell");
+        // ================= BUILT-IN: exit =================
+        if (strcmp(args[0], "exit") == 0) {
+            printf("Exiting the P-Shell\n");
             exit(0);
         }
 
+        int redirect = 0;
+        int append = 0;
+
+        char* filename = NULL;
+
+        for(int j=0; args[j]!=NULL; j++){
+            if(strcmp(args[j],">") == 0){
+                if (args[j+1] == NULL) {
+                    printf("Error: No file specified\n");
+                    break;
+                }
+                redirect = 1;
+                filename = args[j+1];
+                args[j] = NULL;
+                break;
+            }
+
+            //append
+
+            if(strcmp(args[j],">>") == 0){
+                 if (args[j+1] == NULL) {
+                    printf("Error: No file specified\n");
+                    break;
+                }
+                redirect=1;
+                append = 1;
+                filename = args[j+1];
+                args[j] = NULL;
+                break;
+            }
+
+            
+        }
+        
+
+        // ================= PROCESS CREATION =================
         pid_t pid = fork();
 
-        if(pid==0){
-            //child
-            execvp(args[0],args);
-            // execvp("ls", ["ls", "-l", NULL])
-            // ls -l
+        if (pid == 0) {
+            // CHILD PROCESS
 
-            //Only runs when execp failed
+            if(redirect){
+                int fd;
+                if(append){
+                    fd = open(filename,O_WRONLY|O_CREAT|O_APPEND,0644);
+                }else{
+                    fd = open(filename,O_WRONLY|O_CREAT|O_TRUNC,0644);
+                }
 
-            perror("execution Failed");
+                if(fd<0){
+                    perror("File Open Failed");
+                    exit(1);
+                }
+
+                dup2(fd,STDOUT_FILENO);
+
+                close(fd);
+            }
+
+            // Replace child with new program
+            execvp(args[0], args);
+
+            // Only runs if exec fails
+            perror("execution failed");
             exit(1);
-        }else{
+        } else {
+            // PARENT PROCESS waits for child
             wait(NULL);
         }
     }
