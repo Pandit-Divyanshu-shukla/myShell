@@ -2,7 +2,7 @@
 
 ## Overview
 
-MyShell is a lightweight Unix-like shell implemented in C. It supports execution of system commands, built-in commands, piping, and output redirection using low-level system calls.
+MyShell is a lightweight Unix-like shell implemented in C. It supports execution of system commands, built-in commands, piping, redirection, background processes, and inter-process communication using low-level POSIX system calls.
 
 ---
 
@@ -13,6 +13,7 @@ MyShell is a lightweight Unix-like shell implemented in C. It supports execution
 
   * `cd` (change directory)
   * `exit` (terminate shell)
+  * `history` (show previously executed commands)
 * Output redirection:
 
   * `>` (overwrite)
@@ -20,8 +21,12 @@ MyShell is a lightweight Unix-like shell implemented in C. It supports execution
 * Pipe support:
 
   * `command1 | command2`
-* Modular architecture (multi-file design)
-* Process management using `fork()` and `wait()`
+* Background process execution:
+
+  * `command &`
+* Command history support
+* Modular multi-file architecture
+* Process management using `fork()` and `waitpid()`
 
 ---
 
@@ -29,26 +34,31 @@ MyShell is a lightweight Unix-like shell implemented in C. It supports execution
 
 * Process creation: `fork()`
 * Program execution: `execvp()`
-* Inter-process communication: `pipe()`
+* Inter-process communication (IPC): `pipe()`
 * File descriptor manipulation: `dup2()`
 * File handling: `open()`
+* Process synchronization: `wait()` / `waitpid()`
 * Command parsing using `strtok()`
+* Background execution handling
 * Built-in vs external command handling
 
 ---
 
 ## Project Structure
 
-```
+```text
 .
-├── shell.c        # Main loop
-├── input.c        # Input handling
-├── parser.c       # Command parsing
-├── builtin.c      # Built-in commands
-├── execute.c      # Command execution + redirection
-├── pipe.c         # Pipe handling
-├── shell.h        # Function declarations
-├── Makefile       # Build automation
+├── shell.c         # Main shell loop
+├── input.c         # Input handling
+├── parser.c        # Command parsing
+├── builtin.c       # Built-in commands
+├── execute.c       # Command execution and redirection
+├── pipe.c          # Pipe handling
+├── history.c       # Command history management
+├── background.c    # Background process handling
+├── shell.h         # Shared declarations
+├── Makefile        # Build automation
+├── README.md
 ```
 
 ---
@@ -65,7 +75,7 @@ make
 ### Manual Compilation
 
 ```bash
-gcc shell.c input.c parser.c builtin.c execute.c pipe.c -o shell
+gcc shell.c input.c parser.c builtin.c execute.c pipe.c history.c background.c -o shell
 ./shell
 ```
 
@@ -73,23 +83,51 @@ gcc shell.c input.c parser.c builtin.c execute.c pipe.c -o shell
 
 ## Example Usage
 
+### Basic Commands
+
 ```bash
 ls
 pwd
+echo Hello
+```
+
+### Built-in Commands
+
+```bash
 cd ..
+history
+exit
+```
+
+### Output Redirection
+
+```bash
 ls > out.txt
-cat out.txt
+echo Hello >> out.txt
+```
+
+### Pipe
+
+```bash
 ls | grep .c
+echo hello | wc -c
+```
+
+### Background Process
+
+```bash
+sleep 5 &
 ```
 
 ---
 
-## Limitations
+## Current Limitations
 
-* Single pipe supported (no multiple pipe chaining yet)
+* Single pipe supported (multiple pipe chaining not implemented yet)
 * No input redirection (`<`)
-* No background process support (`&`)
-* No command history or autocomplete
+* No autocomplete support
+* No arrow-key navigation for history
+* Background zombie process cleanup not implemented
 
 ---
 
@@ -97,15 +135,23 @@ ls | grep .c
 
 * Multiple pipe support (`cmd1 | cmd2 | cmd3`)
 * Input redirection (`<`)
-* Background execution (`&`)
-* Command history (arrow keys)
-* Signal handling (Ctrl+C)
+* Signal handling (`Ctrl + C`)
+* Command history navigation using arrow keys
+* Zombie process handling using `SIGCHLD`
+* Environment variable support
 
 ---
 
-## Key Learning
+## Key Learnings
 
-This project demonstrates how a shell works internally by combining process creation, execution, file descriptors, and inter-process communication.
+This project helped in understanding:
+
+* How Unix shells execute commands internally
+* Process creation and management
+* Inter-process communication using pipes
+* File descriptor redirection
+* Foreground vs background execution
+* Modular systems programming in C
 
 ---
 

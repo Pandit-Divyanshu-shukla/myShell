@@ -8,7 +8,7 @@
 /**
  * @brief Executes command with optional redirection.
  */
-void execute_command(char **args, int redirect, char *filename, int append) {
+void execute_command(char **args, int redirect, char *filename, int append, int background) {
     pid_t pid = fork();
 
     if (pid == 0) {
@@ -30,6 +30,10 @@ void execute_command(char **args, int redirect, char *filename, int append) {
         perror("exec failed");
         exit(1);
     } else {
-        waitpid(pid, NULL, 0);
+        if(background){
+            printf("Background Process is Running with PID : %d\n",pid);
+        }else{
+            waitpid(pid, NULL, 0);
+        }   
     }
 }

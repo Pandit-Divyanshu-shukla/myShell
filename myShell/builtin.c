@@ -10,6 +10,11 @@
 int handle_builtin(char **args) {
     if (args[0] == NULL) return 1;
 
+    if (strcmp(args[0], "history") == 0) {
+        show_history();
+        return 1;
+    }
+
     if (strcmp(args[0], "cd") == 0) {
         if (args[1] == NULL)
             chdir(getenv("HOME"));

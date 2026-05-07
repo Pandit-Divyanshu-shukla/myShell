@@ -9,6 +9,7 @@ int main() {
 
     while (1) {
         read_input(input);
+        add_history(input);
         parse_input(input, args);
 
         if (args[0] == NULL) continue;
@@ -24,6 +25,8 @@ int main() {
             continue;
         }
 
-        execute_command(args, redirect, filename, append);
+        int background = handle_background(args);
+
+        execute_command(args, redirect, filename, append, background);
     }
 }
